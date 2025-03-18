@@ -7,7 +7,6 @@ enum ethernet_header_type {
     IPV6 = 0x86DD,
     ARP = 0x0806
 };
-
 struct ethernet_header {
     uint8_t dstMac[6];
     uint8_t srcMac[6];
@@ -55,9 +54,17 @@ struct arp_header {
     uint8_t ProtocolAddressLength;
     uint16_t Opcode;
 
-    uint8_t SourceHdAddress[6];
-    uint8_t SourceProtocolAddress[4];
+    uint8_t SenderMac[6];
+    uint8_t SenderIP[4];
 
-    uint8_t DestinationHdAddress[6];
-    uint8_t DestinationProtocolAddress[4];
+    uint8_t TargetMac[6];
+    uint8_t TargetIP[4];
+
+    
 };
+
+struct EthArpPacket {
+    struct ethernet_header eth;
+    struct arp_header arp;
+};
+
