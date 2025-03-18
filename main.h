@@ -15,3 +15,5 @@ struct EthArpPacket* SendArpPacket(const char *senderMac, const char *senderIP, 
 struct in_addr IPStringToByte(const char* ip);
 
 int MakeEthHeader(struct ethernet_header* ether, unsigned char* SenderMac);
+
+int MakeArpHeader(struct arp_header* arp, const char* senderIP, const char* targetIP, unsigned char* SenderMac);

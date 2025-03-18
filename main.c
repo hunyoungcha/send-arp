@@ -2,7 +2,6 @@
 #include "main.h"
 
 int main(int argc, char* argv[]){
-    //argv[~] 코드 수정 필요
     char* interface = argv[1];
     char* senderip = argv[2];
     char* targetip = argv[3];
@@ -18,16 +17,13 @@ int main(int argc, char* argv[]){
     struct ethernet_header eth;
     MakeEthHeader(&eth, SenderMac);
 
-    printf("%02x:%02x:%02x:%02x:%02x:%02x",
-        eth.srcMac[0],eth.srcMac[1],eth.srcMac[2],eth.srcMac[3],eth.srcMac[4],eth.srcMac[5]);
-    
-    
-    // struct arp_header arp;
-    // MakeArpHeader(&arp);
-    
-        // struct EthArpPacket* arpPacket = SendArpPacket(mac, senderip, targetip);
-    pcap_sendpacket(pcap, (const u_char*)&eth, sizeof(struct ethernet_header));
-	// pcap_close(pcap);
+    struct arp_header arp;
+    MakeArpHeader(&arp, senderip, targetip, SenderMac);
+
+    struct EthArpPacket arpPacket;
+
+    pcap_sendpacket(pcap, (const u_char*)&arpPacket, sizeof(struct EthArpPacket));
+	pcap_close(pcap);
 	return 0;
 }
 
@@ -43,50 +39,6 @@ int GetMacAddress(const char *interface, unsigned char* mac_addr) {
     return 0;
 }
 
-struct EthArpPacket* SendArpPacket(const char *senderMac, const char *senderIP, const char* targetIP) {
-    struct EthArpPacket packet;
-    
-    /*Ethernet*/ //enum으로 변경하기 (define이라도)
-    //DstMac
-    uint8_t TargetMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    memcpy(packet.eth.dstMac, TargetMac, sizeof(packet.eth.dstMac));
-    //SrcMac
-    memcpy(packet.eth.srcMac, senderMac, sizeof(packet.eth.srcMac));
-    //Type
-    packet.eth.type=htons(0x0806);
-
-    /*ARP*/ //enum으로 변경하기 (define이라도)
-    packet.arp.HdType = htons(1);
-    packet.arp.ProtocolType = htons(0x0800);
-    packet.arp.HdAddressLength = htons(6);
-    packet.arp.ProtocolAddressLength = htons(4);
-    packet.arp.Opcode = htons(1);
-    
-    //Sender Mac
-    memcpy(packet.eth.srcMac, senderMac, sizeof(packet.eth.srcMac));
-    
-    //Sender IP
-    struct in_addr S_in_addr = IPStringToByte(senderIP);
-    memcpy(packet.arp.SenderIP, &S_in_addr, 4);
-
-    //Target Mac
-    uint8_t ArpTargetMac[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    memcpy(packet.arp.TargetMac, ArpTargetMac, sizeof(packet.arp.TargetMac));    
-
-    //Target IP
-    struct in_addr T_in_addr = IPStringToByte(targetIP);
-    memcpy(packet.arp.TargetIP, &T_in_addr, 4);
-
-    return &packet;
-}
-
-struct in_addr IPStringToByte(const char* ip ){
-    struct in_addr addr;
-    if(inet_pton(AF_INET, ip, &addr) == 1){
-        return addr;
-    }
-}
-
 int MakeEthHeader(struct ethernet_header* ether, unsigned char* SenderMac){
     uint8_t TargetMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     memcpy(ether->dstMac, TargetMac, sizeof(ether->dstMac)); 
@@ -96,6 +48,29 @@ int MakeEthHeader(struct ethernet_header* ether, unsigned char* SenderMac){
     ether->type = htons(0x0806);
 }
 
-// int MakeArpHeader() {
+int MakeArpHeader(struct arp_header* arp, const char* senderIP, const char* targetIP, unsigned char* SenderMac) {
+    arp->HdType = htons(1);
+    arp->ProtocolType = htons(0x0800);
+    arp->HdAddressLength = htons(6);
+    arp->ProtocolAddressLength = htons(4);
+    arp->Opcode = htons(1);
 
-// }
+    memcpy(arp->SenderMac, SenderMac, sizeof(arp->SenderMac));
+
+    struct in_addr SenderInAddr = IPStringToByte(senderIP);
+    memcpy(arp->SenderIP, &SenderInAddr, sizeof(arp->SenderIP));
+
+    uint8_t TargetMac[6] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    memcpy(arp->TargetMac, TargetMac, sizeof(arp->TargetMac));
+
+    struct in_addr TargetInAddr = IPStringToByte(targetIP);
+    memcpy(arp->TargetIP, &TargetInAddr, sizeof(arp->TargetIP));
+
+}
+
+struct in_addr IPStringToByte(const char* ip ){
+    struct in_addr addr;
+    if(inet_pton(AF_INET, ip, &addr) == 1){
+        return addr;
+    }
+}
